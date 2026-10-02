@@ -68,16 +68,33 @@ def report(name, p, r, f):
     print(f"{name:<30} precision {p:.3f}  recall {r:.3f}  F1 {f:.3f}")
 
 
-report("Rule: any dangerous action", *prf(y, [rule_naive(p) for p in policies]))
-report("Rule: combo, scope-blind", *prf(y, [rule_combo(p) for p in policies]))
-
 skf = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=42)
-models = [
-    ("Logistic regression (bag)", lambda: LogisticRegression(max_iter=1000)),
-    ("Random forest (bag)", lambda: RandomForestClassifier(n_estimators=200, random_state=0)),
-]
-for name, make in models:
+splits = list(skf.split(X, y, groups))
+
+
+def fold_mean(preds):
+    """Average of the five per-fold scores (the way the GNN is reported)."""
+    return tuple(np.mean([prf(y[te], preds[te]) for _, te in splits], axis=0))
+
+
+def cv_preds(make):
     preds = np.zeros(len(y), dtype=int)
-    for tr, te in skf.split(X, y, groups):
+    for tr, te in splits:
         preds[te] = make().fit(X[tr], y[tr]).predict(X[te])
+    return preds
+
+
+methods = [
+    ("Rule: any dangerous action", np.array([rule_naive(p) for p in policies])),
+    ("Rule: combo, scope-blind", np.array([rule_combo(p) for p in policies])),
+    ("Logistic regression (bag)", cv_preds(lambda: LogisticRegression(max_iter=1000))),
+    ("Random forest (bag)", cv_preds(lambda: RandomForestClassifier(n_estimators=200, random_state=0))),
+]
+
+print("Pooled over all policies (rules need no training; the models use out-of-fold predictions)")
+for name, preds in methods:
     report(name, *prf(y, preds))
+
+print("\nMean of the 5 per-fold scores, same folds as the GNN (use this for GNN comparisons)")
+for name, preds in methods:
+    report(name, *fold_mean(preds))

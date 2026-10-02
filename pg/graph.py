@@ -22,6 +22,32 @@ DANGEROUS = {
     "datapipeline:createpipeline",
 }
 
+# What each escalation-capable action DOES. Used by the optional "kinds" feature
+# set so the model can tell PassRole apart from PutRolePolicy, instead of seeing
+# one identical "dangerous" flag for both.
+KINDS = {
+    "passes_role": {"iam:passrole"},
+    "creates_compute": {
+        "lambda:createfunction", "ec2:runinstances", "cloudformation:createstack",
+        "glue:createdevendpoint", "datapipeline:createpipeline",
+    },
+    "edits_permissions": {
+        "iam:createpolicyversion", "iam:setdefaultpolicyversion",
+        "iam:attachuserpolicy", "iam:attachrolepolicy",
+        "iam:putuserpolicy", "iam:putrolepolicy",
+    },
+    "makes_credentials": {
+        "iam:createaccesskey", "iam:createloginprofile", "iam:updateloginprofile",
+    },
+    "edits_code": {"lambda:updatefunctioncode"},
+    "assumes_role": {"sts:assumerole"},
+}
+KIND_NAMES = list(KINDS)
+FEATURE_SETS = ("base", "kinds")
+
+# every dangerous action must belong to exactly one kind
+assert set().union(*KINDS.values()) == DANGEROUS
+
 
 def as_list(x):
     """IAM lets Action/Resource be a string or a list. Always return a list."""
@@ -32,6 +58,12 @@ def is_dangerous(action):
     """True if the action (including wildcards like iam:*) covers a dangerous one."""
     a = action.lower()
     return any(fnmatch.fnmatch(d, a) for d in DANGEROUS)
+
+
+def action_kinds(action):
+    """One 0/1 flag per kind. Wildcards expand, so iam:* sets several kinds."""
+    a = action.lower()
+    return [float(any(fnmatch.fnmatch(m, a) for m in KINDS[k])) for k in KIND_NAMES]
 
 
 def policy_to_nx(policy, name="policy"):
@@ -54,8 +86,11 @@ def policy_to_nx(policy, name="policy"):
     return g
 
 
-def node_features(attrs):
-    """7 features: 4 one-hot node type + wildcard + dangerous + admin."""
+def node_features(attrs, features="base"):
+    """Base: 7 features = 4 one-hot node type + wildcard + dangerous + admin.
+    "kinds" appends 6 more: what kind of action the node is (0 for non-actions)."""
+    if features not in FEATURE_SETS:
+        raise ValueError(f"features must be one of {FEATURE_SETS}, got {features!r}")
     t = [0.0] * len(NTYPES)
     t[NTYPES.index(attrs["ntype"])] = 1.0
 
@@ -63,16 +98,20 @@ def node_features(attrs):
     wild = float("*" in name)
     danger = 0.0
     admin = 0.0
+    kinds = [0.0] * len(KIND_NAMES)
     if attrs["ntype"] == "action":
         danger = float(is_dangerous(name))
         admin = float(name.lower() in ("*", "*:*"))
-    return t + [wild, danger, admin]
+        kinds = action_kinds(name)
+    out = t + [wild, danger, admin]
+    return out + kinds if features == "kinds" else out
 
 
-def nx_to_data(g, label):
+def nx_to_data(g, label, features="base"):
     """Convert a NetworkX graph into a PyTorch Geometric Data object."""
     idx = {n: i for i, n in enumerate(g.nodes)}
-    x = torch.tensor([node_features(g.nodes[n]) for n in g.nodes], dtype=torch.float)
+    x = torch.tensor([node_features(g.nodes[n], features) for n in g.nodes],
+                     dtype=torch.float)
 
     src, dst, et = [], [], []
     for u, v, d in g.edges(data=True):
@@ -88,7 +127,7 @@ def nx_to_data(g, label):
                 y=torch.tensor([label]))
 
 
-def load_dataset(folder, labels_csv):
+def load_dataset(folder, labels_csv, features="base"):
     """Load every policy listed in labels.csv and return a list of Data objects."""
     df = pd.read_csv(labels_csv)
     out = []
@@ -97,5 +136,5 @@ def load_dataset(folder, labels_csv):
         with open(path) as f:
             pol = json.load(f)
         g = policy_to_nx(pol, row["filename"])
-        out.append(nx_to_data(g, int(row["label"])))
+        out.append(nx_to_data(g, int(row["label"]), features))
     return out

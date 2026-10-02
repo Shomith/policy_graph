@@ -1,0 +1,8 @@
+5 seeds (42..46), 5 folds each; mean +/- std across seeds of the fold-averaged score
+
+base   ( 7 features)  precision 0.849+/-0.019  recall 0.744+/-0.029  F1 0.766+/-0.013
+kinds  (13 features)  precision 0.941+/-0.004  recall 0.940+/-0.013  F1 0.940+/-0.008
+
+F1 per fold (mean over seeds):
+  base   0.520  0.874  0.838  0.807  0.789
+  kinds  0.702  1.000  1.000  1.000  1.000

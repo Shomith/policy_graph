@@ -1,0 +1,38 @@
+Feature set: kinds  (13 features per node)
+
+Fold 1  (train 226, test 54)
+  epoch   0  loss 0.6979
+  epoch  20  loss 0.0025
+  epoch  40  loss 0.0014
+  precision 0.696  recall 0.667  F1 0.681
+
+Fold 2  (train 220, test 60)
+  epoch   0  loss 0.6950
+  epoch  20  loss 0.0034
+  epoch  40  loss 0.0026
+  precision 1.000  recall 1.000  F1 1.000
+
+Fold 3  (train 223, test 57)
+  epoch   0  loss 0.6945
+  epoch  20  loss 0.0858
+  epoch  40  loss 0.0031
+  precision 1.000  recall 1.000  F1 1.000
+
+Fold 4  (train 223, test 57)
+  epoch   0  loss 0.6953
+  epoch  20  loss 0.0083
+  epoch  40  loss 0.0018
+  precision 1.000  recall 1.000  F1 1.000
+
+Fold 5  (train 228, test 52)
+  epoch   0  loss 0.6935
+  epoch  20  loss 0.0109
+  epoch  40  loss 0.0126
+  precision 1.000  recall 1.000  F1 1.000
+
+MEAN over folds:
+  precision 0.939
+  recall    0.933
+  F1        0.936
+
+Saved model.pt

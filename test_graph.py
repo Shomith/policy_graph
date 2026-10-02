@@ -13,5 +13,12 @@ print("\nx shape:", data.x.shape)
 print("edge_index shape:", data.edge_index.shape)
 print("dangerous flags:", data.x[:, 5].tolist())
 
+k = nx_to_data(g, 1, "kinds")
+print("\nkinds feature shape:", k.x.shape)
+print("kind flags per node (passes_role, creates_compute, edits_permissions,")
+print("  makes_credentials, edits_code, assumes_role):")
+for n, row in zip(g.nodes, k.x[:, 7:].tolist()):
+    print(" ", n, row)
+
 ds = load_dataset("data/policies", "data/labels.csv")
 print("\nLoaded", len(ds), "graphs")

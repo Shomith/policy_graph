@@ -1,0 +1,11 @@
+Pooled over all policies (rules need no training; the models use out-of-fold predictions)
+Rule: any dangerous action     precision 0.620  recall 1.000  F1 0.765
+Rule: combo, scope-blind       precision 0.795  recall 1.000  F1 0.886
+Logistic regression (bag)      precision 0.000  recall 0.000  F1 0.000
+Random forest (bag)            precision 0.000  recall 0.000  F1 0.000
+
+Mean of the 5 per-fold scores, same folds as the GNN (use this for GNN comparisons)
+Rule: any dangerous action     precision 0.620  recall 1.000  F1 0.764
+Rule: combo, scope-blind       precision 0.804  recall 1.000  F1 0.888
+Logistic regression (bag)      precision 0.000  recall 0.000  F1 0.000
+Random forest (bag)            precision 0.000  recall 0.000  F1 0.000
